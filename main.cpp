@@ -8,7 +8,17 @@
 #include <opencv2/objdetect.hpp>
 #include <random>
 #include <utility>
+#include <opencv2/ml.hpp>
 
+constexpr int WIDTH = 64;
+constexpr int HEIGHT = 128;
+
+struct Data {
+    std::vector<float> hog_features;
+    std::vector<float> lbp_features;
+    int label;
+    std::string dataset;
+};
 
 std::vector<cv::Rect> get_bounding_boxes(const std::string &annotation_file) {
     std::vector<cv::Rect> boxes;
@@ -146,7 +156,7 @@ std::vector<cv::Mat> load_negative(const std::string &folder,
     namespace fs = std::filesystem;
     std::vector<cv::Mat> negatives;
 
-    for (const auto &entry : fs::directory_iterator(folder)) {
+    for (const auto &entry: fs::directory_iterator(folder)) {
         if (!entry.is_regular_file()) continue;
         if (entry.path().extension() != ".png") continue;
 
@@ -162,7 +172,7 @@ std::vector<cv::Mat> load_negative(const std::string &folder,
         auto boxes = get_bounding_boxes(annotation_file);
         auto cropped = extract_boxes(img, boxes);
 
-        for (auto &patch : cropped) {
+        for (auto &patch: cropped) {
             if (patch.empty()) continue;
             cv::Mat resized;
             cv::resize(patch, resized, target_size);
@@ -175,23 +185,48 @@ std::vector<cv::Mat> load_negative(const std::string &folder,
 }
 
 
+std::vector<float> get_hog_features(const cv::Mat &image) {
+    const cv::HOGDescriptor hog(
+        cv::Size(64, 128),
+        cv::Size(16, 16),
+        cv::Size(16, 16),
+        cv::Size(4, 4),
+        9
+    );
 
-void lbp(const cv::Mat &image, cv::Mat &result) {
-    assert(image.channels() == 1); // input image must be gray scale
+    std::vector<float> features;
+    hog.compute(image, features);
+    return features;
+}
 
-    result.create(image.size(), CV_8U); // allocate if necessary
+std::vector<int> lbp(const cv::Mat &temp) {
+    cv::Mat gray;
+    if (temp.channels() != 1)
+        cv::cvtColor(temp, gray, cv::COLOR_BGR2GRAY);
+    else
+        temp.copyTo(gray);
 
-    for (int j = 1; j < image.rows - 1; j++) {
-        // for all rows (except first and last)
+    std::vector<int> features;
+    features.resize(gray.rows * gray.cols);
 
-        const uchar *previous = image.ptr<const uchar>(j - 1); // previous row
-        const uchar *current = image.ptr<const uchar>(j); // current row
-        const uchar *next = image.ptr<const uchar>(j + 1); // next row
 
-        uchar *output = result.ptr<uchar>(j); // output row
+    for (int j = 0; j < gray.rows; j++) {
+        if (j == 0 || j == gray.rows - 1) {
+            continue;
+        }
 
-        for (int i = 1; i < image.cols - 1; i++) {
-            // compose local binary pattern
+        const auto *previous = gray.ptr<const uchar>(j - 1);
+        const auto *current = gray.ptr<const uchar>(j);
+        const auto *next = gray.ptr<const uchar>(j + 1);
+
+        auto *output = &features[j * gray.cols];
+
+        for (int i = 0; i < gray.cols; i++) {
+            if (i == 0 || i == gray.cols - 1) {
+                output++;
+                continue;
+            }
+
             *output = previous[i - 1] > current[i] ? 1 : 0;
             *output |= previous[i] > current[i] ? 2 : 0;
             *output |= previous[i + 1] > current[i] ? 4 : 0;
@@ -203,15 +238,84 @@ void lbp(const cv::Mat &image, cv::Mat &result) {
             *output |= next[i] > current[i] ? 64 : 0;
             *output |= next[i + 1] > current[i] ? 128 : 0;
 
-            output++; // next pixel
+            output++;
         }
     }
 
-    // Set the unprocess pixels to 0
-    result.row(0).setTo(cv::Scalar(0));
-    result.row(result.rows - 1).setTo(cv::Scalar(0));
-    result.col(0).setTo(cv::Scalar(0));
-    result.col(result.cols - 1).setTo(cv::Scalar(0));
+    return features;
+}
+
+std::vector<float> get_lbp_features(const cv::Mat &image) {
+    std::vector<float> features;
+    const auto intValue = lbp(image);
+    features.reserve(intValue.size());
+    for (const auto &i: intValue) {
+        features.emplace_back(i * 1.0 / 256);
+    }
+    return features;
+}
+
+void save_features(std::vector<Data> const &data, const std::string &filename) {
+    std::ofstream file(filename); // truncation by default
+    if (!file.is_open()) {
+        std::cerr << "Could not create feature file: " << filename << '\n';
+        return;
+    }
+
+    for (const auto &[hog, lbp, label, dataset]: data) {
+        file << label << "|";
+        file << dataset << "|";
+
+        for (size_t i = 0; i < hog.size(); ++i) {
+            file << hog[i];
+            if (i + 1 < hog.size()) file << ",";
+        }
+        file << "|";
+
+        for (size_t i = 0; i < lbp.size(); ++i) {
+            file << lbp[i];
+            if (i + 1 < lbp.size()) file << ",";
+        }
+        file << '\n';
+    }
+}
+
+std::vector<Data> load_features(const std::string &filename) {
+    std::vector<Data> data;
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Could not open feature file: " << filename << '\n';
+        return data;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string label_str, dataset_str, hog_str, lbp_str;
+
+        if (!std::getline(ss, label_str, '|')) continue;
+        if (!std::getline(ss, dataset_str, '|')) continue;
+        if (!std::getline(ss, hog_str, '|')) continue;
+        if (!std::getline(ss, lbp_str, '|')) continue;
+
+
+        std::vector<float> hog_features;
+        std::stringstream hog_ss(hog_str);
+        std::string val;
+        while (std::getline(hog_ss, val, ',')) {
+            if (!val.empty()) hog_features.push_back(std::stof(val));
+        }
+
+        std::vector<float> lbp_features;
+        std::stringstream lbp_ss(lbp_str);
+        while (std::getline(lbp_ss, val, ',')) {
+            if (!val.empty()) lbp_features.push_back(std::stof(val));
+        }
+
+        data.push_back({hog_features, lbp_features, std::stoi(label_str), dataset_str});
+    }
+
+    return data;
 }
 
 
@@ -220,15 +324,100 @@ int main() {
     const std::string n_folder = "../para_imagenesNegativas";
     const std::string f_prefix = "FudanPed";
     const std::string p_prefix = "PennPed";
+    std::vector<Data> data;
+
 
     const auto fudan_images = load_positive(p_folder, f_prefix);
     const auto penn_images = load_positive(p_folder, p_prefix);
-    const auto neg_images = load_negative(n_folder, {64, 128}, 1000, 5);
+    const auto neg_images = load_negative(n_folder, {64, 128}, 1000, 1000 / 6);
 
-    for (const auto &img: neg_images) {
-        cv::imshow("neg", img);
-        cv::waitKey(0);
+    for (const auto &fudan_image: fudan_images) {
+        Data d;
+        d.label = +1;
+        d.hog_features = get_hog_features(fudan_image);
+        d.lbp_features = get_lbp_features(fudan_image);
+        d.dataset = "fudan";
+        data.push_back(d);
     }
+
+    for (const auto &penn_image: penn_images) {
+        Data d;
+        d.label = +1;
+        d.hog_features = get_hog_features(penn_image);
+        d.lbp_features = get_lbp_features(penn_image);
+        d.dataset = "penn";
+        data.push_back(d);
+    }
+
+    for (const auto &neg_image: neg_images) {
+        Data d;
+        d.label = -1;
+        d.hog_features = get_hog_features(neg_image);
+        d.lbp_features = get_lbp_features(neg_image);
+        d.dataset = "neg";
+        data.push_back(d);
+    }
+
+    save_features(data, "../data.csv");
+
+    auto data1 = load_features("../data.csv");
+int a;
+
+    //
+    // const auto hogfeatures = get_hog_features(fudan_images);
+    // const auto lbpfeatures = get_lbp_features(fudan_images);
+
+
+    // std::vector<std::vector<float> > descriptor_vectors;
+    // std::vector<int> labels;
+    //
+    // for (const auto &img: fudan_images) {
+    //     std::vector<float> descriptors;
+    //     hog.compute(img, descriptors);
+    //     descriptor_vectors.push_back(std::move(descriptors));
+    //     labels.push_back(+1);
+    // }
+    //
+    // for (const auto &img: penn_images) {
+    //     std::vector<float> descriptors;
+    //     hog.compute(img, descriptors);
+    //     descriptor_vectors.push_back(std::move(descriptors));
+    //     labels.push_back(+1);
+    // }
+    //
+    // for (const auto &img: neg_images) {
+    //     std::vector<float> descriptors;
+    //     hog.compute(img, descriptors);
+    //     descriptor_vectors.push_back(std::move(descriptors));
+    //     labels.push_back(-1);
+    // }
+    //
+    // int descriptor_size = descriptor_vectors[0].size();
+    // cv::Mat training_data((int) descriptor_vectors.size(), descriptor_size, CV_32F);
+    // for (size_t i = 0; i < descriptor_vectors.size(); ++i) {
+    //     for (int j = 0; j < descriptor_size; ++j) {
+    //         training_data.at<float>(i, j) = descriptor_vectors[i][j];
+    //     }
+    // }
+
+    // cv::Mat training_labels(labels, true);
+    // training_labels.convertTo(training_labels, CV_32S);
+    //
+    // cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
+    // svm->setKernel(cv::ml::SVM::LINEAR);
+    // svm->setType(cv::ml::SVM::C_SVC);
+    // svm->train(training_data, cv::ml::ROW_SAMPLE, training_labels);
+    //
+    // for (int i = 0; i < 10; ++i) {
+    //     cv::Mat sample(1, descriptor_size, CV_32F);
+    //     for (int j = 0; j < descriptor_size; ++j) {
+    //         sample.at<float>(0, j) = descriptor_vectors[i][j];
+    //     }
+    //
+    //     float prediction = svm->predict(sample);
+    //     std::cout << "Sample " << i << ": Prediction = " << prediction
+    //             << ", Actual = " << labels[i] << std::endl;
+    // }
 
     return 0;
 }
