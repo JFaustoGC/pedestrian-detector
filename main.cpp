@@ -13,6 +13,10 @@
 constexpr int WIDTH = 64;
 constexpr int HEIGHT = 128;
 
+constexpr int POS_LABEL = 1;
+constexpr int NEG_LABEL = -1;
+
+
 struct Data {
     std::vector<float> hog_features;
     std::vector<float> lbp_features;
@@ -430,27 +434,63 @@ TrainingMatrices generate_training_matrices(const std::vector<Data> &data, Featu
     return {training_features, training_labels, descriptor_size};
 }
 
-void test_svm(const std::vector<Data> &data, const TrainingMatrices &training_matrices,
-              const cv::Ptr<cv::ml::SVM> &svm, FeatureType type) {
-    int correct = 0;
-    for (size_t i = 0; i < data.size(); ++i) {
-        auto features = extract_features(data[i], type);
-        cv::Mat sample(1, training_matrices.descriptor_size, CV_32F);
-        for (size_t j = 0; j < features.size(); ++j) {
-            sample.at<float>(0, static_cast<int>(j)) = features[j];
-        }
+struct Metrics {
+    double accuracy_sum = 0;
+    double precision_sum = 0;
+    double recall_sum = 0;
+    double f1_sum = 0;
+    int runs = 0;
 
-        float prediction = svm->predict(sample);
-        if (static_cast<int>(prediction) == data[i].label) {
-            correct++;
-        }
+    void accumulate(double acc, double prec, double rec, double f1) {
+        accuracy_sum += acc;
+        precision_sum += prec;
+        recall_sum += rec;
+        f1_sum += f1;
+        runs++;
     }
 
-    std::cout << "Accuracy (" << (type == FeatureType::HOG ? "HOG" :
-                                   type == FeatureType::LBP ? "LBP" : "BOTH")
-              << "): " << 100.0 * correct / data.size()
-              << "% (" << correct << "/" << data.size() << " correct)\n";
+    void print_avg(const std::string &label) const {
+        std::cout << "=== Average Metrics for " << label << " over " << runs << " runs ===\n";
+        std::cout << "Accuracy:  " << accuracy_sum / runs << "%\n";
+        std::cout << "Precision: " << precision_sum / runs << "%\n";
+        std::cout << "Recall:    " << recall_sum / runs << "%\n";
+        std::cout << "F1 Score:  " << f1_sum / runs << "%\n\n";
+    }
+};
+
+
+std::tuple<double, double, double, double> test_svm(
+    const std::vector<Data> &data,
+    const TrainingMatrices &training_matrices,
+    const cv::Ptr<cv::ml::SVM> &svm,
+    FeatureType type
+) {
+    int TP = 0, TN = 0, FP = 0, FN = 0;
+
+    for (const auto &sample: data) {
+        auto features = extract_features(sample, type);
+        cv::Mat input(1, training_matrices.descriptor_size, CV_32F);
+        for (size_t j = 0; j < features.size(); ++j) {
+            input.at<float>(0, static_cast<int>(j)) = features[j];
+        }
+
+        int prediction = static_cast<int>(svm->predict(input));
+        int label = sample.label;
+        if (prediction == POS_LABEL && label == POS_LABEL) TP++;
+        else if (prediction == NEG_LABEL && label == NEG_LABEL) TN++;
+        else if (prediction == POS_LABEL && label == NEG_LABEL) FP++;
+        else if (prediction == NEG_LABEL && label == POS_LABEL) FN++;
+    }
+
+    int total = TP + TN + FP + FN;
+    double accuracy = 100.0 * (TP + TN) / total;
+    double precision = (TP + FP == 0) ? 0 : 100.0 * TP / (TP + FP);
+    double recall = (TP + FN == 0) ? 0 : 100.0 * TP / (TP + FN);
+    double f1 = (precision + recall == 0) ? 0 : 2.0 * precision * recall / (precision + recall);
+
+    return {accuracy, precision, recall, f1};
 }
+
 
 int main(int argc, char **argv) {
     bool generate_features = false;
@@ -467,30 +507,35 @@ int main(int argc, char **argv) {
 
     auto [posData, negData] = load_features("../data.csv");
 
-    // Split pos and neg
-    auto posSplit = split_vector(posData, 80);
-    auto negSplit = split_vector(negData, 80);
+    constexpr int runs = 5;
+    std::map<FeatureType, Metrics> results;
 
-    std::vector<Data> trainData, testData;
+    for (int i = 0; i < runs; ++i) {
+        auto posSplit = split_vector(posData, 80);
+        auto negSplit = split_vector(negData, 80);
 
-    // Merge train and test sets
-    trainData.insert(trainData.end(), posSplit.train.begin(), posSplit.train.end());
-    trainData.insert(trainData.end(), negSplit.train.begin(), negSplit.train.end());
+        std::vector<Data> trainData, testData;
+        trainData.insert(trainData.end(), posSplit.train.begin(), posSplit.train.end());
+        trainData.insert(trainData.end(), negSplit.train.begin(), negSplit.train.end());
+        testData.insert(testData.end(), posSplit.test.begin(), posSplit.test.end());
+        testData.insert(testData.end(), negSplit.test.begin(), negSplit.test.end());
 
-    testData.insert(testData.end(), posSplit.test.begin(), posSplit.test.end());
-    testData.insert(testData.end(), negSplit.test.begin(), negSplit.test.end());
+        for (FeatureType type: {FeatureType::HOG, FeatureType::LBP, FeatureType::BOTH}) {
+            auto training_matrices = generate_training_matrices(trainData, type);
 
-    // Prepare training matrices
+            cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
+            svm->setKernel(cv::ml::SVM::LINEAR);
+            svm->setType(cv::ml::SVM::C_SVC);
+            svm->train(training_matrices.features, cv::ml::ROW_SAMPLE, training_matrices.labels);
 
-    for (const FeatureType type : {FeatureType::HOG, FeatureType::LBP, FeatureType::BOTH}) {
-        auto training_matrices = generate_training_matrices(trainData, type);
+            auto [acc, prec, rec, f1] = test_svm(testData, training_matrices, svm, type);
+            results[type].accumulate(acc, prec, rec, f1);
+        }
+    }
 
-        cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
-        svm->setKernel(cv::ml::SVM::LINEAR);
-        svm->setType(cv::ml::SVM::C_SVC);
-        svm->train(training_matrices.features, cv::ml::ROW_SAMPLE, training_matrices.labels);
-
-        test_svm(testData, training_matrices, svm, type);
+    for (const auto &[type, metrics]: results) {
+        std::string label = (type == FeatureType::HOG ? "HOG" : type == FeatureType::LBP ? "LBP" : "BOTH");
+        metrics.print_avg(label);
     }
 
 
