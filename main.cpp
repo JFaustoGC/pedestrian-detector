@@ -20,6 +20,18 @@ struct Data {
     std::string dataset;
 };
 
+struct SplitData {
+    std::vector<Data> train;
+    std::vector<Data> test;
+};
+
+struct TrainingMatrices {
+    cv::Mat features;
+    cv::Mat labels;
+    int descriptor_size;
+};
+
+
 std::vector<cv::Rect> get_bounding_boxes(const std::string &annotation_file) {
     std::vector<cv::Rect> boxes;
     std::ifstream file(annotation_file);
@@ -185,13 +197,11 @@ std::vector<cv::Mat> load_negative(const std::string &folder,
 }
 
 
-std::vector<float> get_hog_features(const cv::Mat &image) {
+std::vector<float> get_hog_features(const cv::Mat &image, const cv::Size winSize = {64, 128},
+                                    const cv::Size blockSize = {16, 16}, const cv::Size blockStride = {8, 8},
+                                    const cv::Size cellSize = {8, 8}, const int nbins = 9) {
     const cv::HOGDescriptor hog(
-        cv::Size(64, 128),
-        cv::Size(16, 16),
-        cv::Size(16, 16),
-        cv::Size(4, 4),
-        9
+        winSize, blockSize, blockStride, cellSize, nbins
     );
 
     std::vector<float> features;
@@ -280,12 +290,12 @@ void save_features(std::vector<Data> const &data, const std::string &filename) {
     }
 }
 
-std::vector<Data> load_features(const std::string &filename) {
-    std::vector<Data> data;
+std::pair<std::vector<Data>, std::vector<Data> > load_features(const std::string &filename) {
+    std::vector<Data> posData, negData;
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Could not open feature file: " << filename << '\n';
-        return data;
+        return std::make_pair(posData, negData);
     }
 
     std::string line;
@@ -312,19 +322,23 @@ std::vector<Data> load_features(const std::string &filename) {
             if (!val.empty()) lbp_features.push_back(std::stof(val));
         }
 
-        data.push_back({hog_features, lbp_features, std::stoi(label_str), dataset_str});
+        if (label_str == "-1") {
+            negData.push_back({hog_features, lbp_features, std::stoi(label_str), dataset_str});
+            continue;
+        }
+
+        posData.push_back({hog_features, lbp_features, std::stoi(label_str), dataset_str});
     }
 
-    return data;
+    return std::make_pair(posData, negData);
 }
 
-
-int main() {
+void generate_data() {
+    std::vector<Data> data;
     const std::string p_folder = "../pedestrian_dataset";
     const std::string n_folder = "../para_imagenesNegativas";
     const std::string f_prefix = "FudanPed";
     const std::string p_prefix = "PennPed";
-    std::vector<Data> data;
 
 
     const auto fudan_images = load_positive(p_folder, f_prefix);
@@ -359,65 +373,113 @@ int main() {
     }
 
     save_features(data, "../data.csv");
+}
 
-    auto data1 = load_features("../data.csv");
-int a;
+SplitData split_vector(const std::vector<Data> &data, int percent) {
+    if (percent <= 0 || percent >= 100) {
+        throw std::invalid_argument("Percent must be between 1 and 99.");
+    }
 
-    //
-    // const auto hogfeatures = get_hog_features(fudan_images);
-    // const auto lbpfeatures = get_lbp_features(fudan_images);
+    std::vector<Data> shuffled = data;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::shuffle(shuffled.begin(), shuffled.end(), gen);
+
+    const auto split_idx = shuffled.size() * percent / 100;
+
+    std::vector first(shuffled.begin(), shuffled.begin() + split_idx);
+    std::vector second(shuffled.begin() + split_idx, shuffled.end());
+
+    return {first, second};
+}
+
+TrainingMatrices generate_training_matrices(const std::vector<Data> &data) {
+    int descriptor_size = static_cast<int>(data[0].hog_features.size() + data[0].lbp_features.size());
+    cv::Mat training_features(static_cast<int>(data.size()), descriptor_size, CV_32F);
+    cv::Mat training_labels(static_cast<int>(data.size()), 1, CV_32S);
+
+    for (size_t i = 0; i < data.size(); ++i) {
+        const auto &hog = data[i].hog_features;
+        const auto &lbp = data[i].lbp_features;
+        std::vector<float> full_feature(hog);
+        full_feature.insert(full_feature.end(), lbp.begin(), lbp.end());
+
+        for (size_t j = 0; j < full_feature.size(); ++j) {
+            training_features.at<float>(i, j) = full_feature[j];
+        }
+
+        training_labels.at<int>(i) = data[i].label;
+    }
+
+    return {training_features, training_labels, descriptor_size};
+}
+
+void test_svm(const std::vector<Data> &data, const TrainingMatrices &training_matrices,
+              const cv::Ptr<cv::ml::SVM> &svm) {
+    // Test
+    int correct = 0;
+    for (size_t i = 0; i < data.size(); ++i) {
+        const auto &hog = data[i].hog_features;
+        const auto &lbp = data[i].lbp_features;
+        std::vector<float> full_feature(hog);
+        full_feature.insert(full_feature.end(), lbp.begin(), lbp.end());
+
+        cv::Mat sample(1, training_matrices.descriptor_size, CV_32F);
+        for (size_t j = 0; j < full_feature.size(); ++j) {
+            sample.at<float>(0, j) = full_feature[j];
+        }
+
+        float prediction = svm->predict(sample);
+        if (static_cast<int>(prediction) == data[i].label) {
+            correct++;
+        }
+    }
+
+    std::cout << "Accuracy: " << 100.0 * correct / data.size() << "% ("
+            << correct << "/" << data.size() << " correct)" << std::endl;
+}
+
+int main(int argc, char **argv) {
+    bool generate_features = false;
+
+    for (int i = 1; i < argc; ++i) {
+        if (std::string arg = argv[i]; arg == "--generate-features") {
+            generate_features = true;
+        }
+    }
+
+    if (generate_features) {
+        generate_data();
+    }
+
+    auto [posData, negData] = load_features("../data.csv");
+
+    // Split pos and neg
+    auto posSplit = split_vector(posData, 80);
+    auto negSplit = split_vector(negData, 80);
+
+    std::vector<Data> trainData, testData;
+
+    // Merge train and test sets
+    trainData.insert(trainData.end(), posSplit.train.begin(), posSplit.train.end());
+    trainData.insert(trainData.end(), negSplit.train.begin(), negSplit.train.end());
+
+    testData.insert(testData.end(), posSplit.test.begin(), posSplit.test.end());
+    testData.insert(testData.end(), negSplit.test.begin(), negSplit.test.end());
+
+    // Prepare training matrices
+
+    auto training_matrices = generate_training_matrices(trainData);
+
+    // Train SVM
+    cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
+    svm->setKernel(cv::ml::SVM::LINEAR);
+    svm->setType(cv::ml::SVM::C_SVC);
+    svm->train(training_matrices.features, cv::ml::ROW_SAMPLE, training_matrices.labels);
 
 
-    // std::vector<std::vector<float> > descriptor_vectors;
-    // std::vector<int> labels;
-    //
-    // for (const auto &img: fudan_images) {
-    //     std::vector<float> descriptors;
-    //     hog.compute(img, descriptors);
-    //     descriptor_vectors.push_back(std::move(descriptors));
-    //     labels.push_back(+1);
-    // }
-    //
-    // for (const auto &img: penn_images) {
-    //     std::vector<float> descriptors;
-    //     hog.compute(img, descriptors);
-    //     descriptor_vectors.push_back(std::move(descriptors));
-    //     labels.push_back(+1);
-    // }
-    //
-    // for (const auto &img: neg_images) {
-    //     std::vector<float> descriptors;
-    //     hog.compute(img, descriptors);
-    //     descriptor_vectors.push_back(std::move(descriptors));
-    //     labels.push_back(-1);
-    // }
-    //
-    // int descriptor_size = descriptor_vectors[0].size();
-    // cv::Mat training_data((int) descriptor_vectors.size(), descriptor_size, CV_32F);
-    // for (size_t i = 0; i < descriptor_vectors.size(); ++i) {
-    //     for (int j = 0; j < descriptor_size; ++j) {
-    //         training_data.at<float>(i, j) = descriptor_vectors[i][j];
-    //     }
-    // }
-
-    // cv::Mat training_labels(labels, true);
-    // training_labels.convertTo(training_labels, CV_32S);
-    //
-    // cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
-    // svm->setKernel(cv::ml::SVM::LINEAR);
-    // svm->setType(cv::ml::SVM::C_SVC);
-    // svm->train(training_data, cv::ml::ROW_SAMPLE, training_labels);
-    //
-    // for (int i = 0; i < 10; ++i) {
-    //     cv::Mat sample(1, descriptor_size, CV_32F);
-    //     for (int j = 0; j < descriptor_size; ++j) {
-    //         sample.at<float>(0, j) = descriptor_vectors[i][j];
-    //     }
-    //
-    //     float prediction = svm->predict(sample);
-    //     std::cout << "Sample " << i << ": Prediction = " << prediction
-    //             << ", Actual = " << labels[i] << std::endl;
-    // }
+    test_svm(testData, training_matrices, svm);
 
     return 0;
 }
