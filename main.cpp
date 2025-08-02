@@ -394,40 +394,50 @@ SplitData split_vector(const std::vector<Data> &data, int percent) {
     return {first, second};
 }
 
-TrainingMatrices generate_training_matrices(const std::vector<Data> &data) {
-    int descriptor_size = static_cast<int>(data[0].hog_features.size() + data[0].lbp_features.size());
+enum class FeatureType {
+    HOG,
+    LBP,
+    BOTH
+};
+
+std::vector<float> extract_features(const Data &sample, FeatureType type) {
+    std::vector<float> features;
+
+    if (type == FeatureType::HOG || type == FeatureType::BOTH) {
+        features.insert(features.end(), sample.hog_features.begin(), sample.hog_features.end());
+    }
+
+    if (type == FeatureType::LBP || type == FeatureType::BOTH) {
+        features.insert(features.end(), sample.lbp_features.begin(), sample.lbp_features.end());
+    }
+
+    return features;
+}
+
+TrainingMatrices generate_training_matrices(const std::vector<Data> &data, FeatureType type) {
+    int descriptor_size = static_cast<int>(extract_features(data[0], type).size());
     cv::Mat training_features(static_cast<int>(data.size()), descriptor_size, CV_32F);
     cv::Mat training_labels(static_cast<int>(data.size()), 1, CV_32S);
 
     for (size_t i = 0; i < data.size(); ++i) {
-        const auto &hog = data[i].hog_features;
-        const auto &lbp = data[i].lbp_features;
-        std::vector<float> full_feature(hog);
-        full_feature.insert(full_feature.end(), lbp.begin(), lbp.end());
-
-        for (size_t j = 0; j < full_feature.size(); ++j) {
-            training_features.at<float>(i, j) = full_feature[j];
+        auto features = extract_features(data[i], type);
+        for (size_t j = 0; j < features.size(); ++j) {
+            training_features.at<float>(static_cast<int>(i), static_cast<int>(j)) = features[j];
         }
-
-        training_labels.at<int>(i) = data[i].label;
+        training_labels.at<int>(static_cast<int>(i)) = data[i].label;
     }
 
     return {training_features, training_labels, descriptor_size};
 }
 
 void test_svm(const std::vector<Data> &data, const TrainingMatrices &training_matrices,
-              const cv::Ptr<cv::ml::SVM> &svm) {
-    // Test
+              const cv::Ptr<cv::ml::SVM> &svm, FeatureType type) {
     int correct = 0;
     for (size_t i = 0; i < data.size(); ++i) {
-        const auto &hog = data[i].hog_features;
-        const auto &lbp = data[i].lbp_features;
-        std::vector<float> full_feature(hog);
-        full_feature.insert(full_feature.end(), lbp.begin(), lbp.end());
-
+        auto features = extract_features(data[i], type);
         cv::Mat sample(1, training_matrices.descriptor_size, CV_32F);
-        for (size_t j = 0; j < full_feature.size(); ++j) {
-            sample.at<float>(0, j) = full_feature[j];
+        for (size_t j = 0; j < features.size(); ++j) {
+            sample.at<float>(0, static_cast<int>(j)) = features[j];
         }
 
         float prediction = svm->predict(sample);
@@ -436,8 +446,10 @@ void test_svm(const std::vector<Data> &data, const TrainingMatrices &training_ma
         }
     }
 
-    std::cout << "Accuracy: " << 100.0 * correct / data.size() << "% ("
-            << correct << "/" << data.size() << " correct)" << std::endl;
+    std::cout << "Accuracy (" << (type == FeatureType::HOG ? "HOG" :
+                                   type == FeatureType::LBP ? "LBP" : "BOTH")
+              << "): " << 100.0 * correct / data.size()
+              << "% (" << correct << "/" << data.size() << " correct)\n";
 }
 
 int main(int argc, char **argv) {
@@ -470,16 +482,17 @@ int main(int argc, char **argv) {
 
     // Prepare training matrices
 
-    auto training_matrices = generate_training_matrices(trainData);
+    for (const FeatureType type : {FeatureType::HOG, FeatureType::LBP, FeatureType::BOTH}) {
+        auto training_matrices = generate_training_matrices(trainData, type);
 
-    // Train SVM
-    cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
-    svm->setKernel(cv::ml::SVM::LINEAR);
-    svm->setType(cv::ml::SVM::C_SVC);
-    svm->train(training_matrices.features, cv::ml::ROW_SAMPLE, training_matrices.labels);
+        cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
+        svm->setKernel(cv::ml::SVM::LINEAR);
+        svm->setType(cv::ml::SVM::C_SVC);
+        svm->train(training_matrices.features, cv::ml::ROW_SAMPLE, training_matrices.labels);
 
+        test_svm(testData, training_matrices, svm, type);
+    }
 
-    test_svm(testData, training_matrices, svm);
 
     return 0;
 }
