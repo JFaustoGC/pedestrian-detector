@@ -2,12 +2,12 @@
 // Created by fausto on 8/4/25.
 //
 
-#include "features.h"
+#include "descriptors.h"
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/objdetect.hpp>
 
-namespace features {
+namespace descriptors {
     std::vector<float> get_hog(const cv::Mat &img) {
         const cv::Size winSize = {64, 128};
         const cv::Size blockSize = {16, 16};
@@ -66,6 +66,11 @@ namespace features {
             }
         }
 
-        return features;
+        std::vector<float> featuresf;
+        featuresf.reserve(features.size());
+        for (const auto &i: features) {
+            featuresf.emplace_back(i * 1.0 / 256);
+        }
+        return featuresf;
     }
 }

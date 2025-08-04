@@ -5,10 +5,10 @@
 #include <opencv2/highgui.hpp>
 #include <filesystem>
 #include <fstream>
-#include <opencv2/objdetect.hpp>
 #include <random>
 #include <utility>
 #include <opencv2/ml.hpp>
+#include "descriptors.h"
 
 constexpr int WIDTH = 64;
 constexpr int HEIGHT = 128;
@@ -201,73 +201,8 @@ std::vector<cv::Mat> load_negative(const std::string &folder,
 }
 
 
-std::vector<float> get_hog_features(const cv::Mat &image, const cv::Size winSize = {64, 128},
-                                    const cv::Size blockSize = {16, 16}, const cv::Size blockStride = {8, 8},
-                                    const cv::Size cellSize = {8, 8}, const int nbins = 9) {
-    const cv::HOGDescriptor hog(
-        winSize, blockSize, blockStride, cellSize, nbins
-    );
-
-    std::vector<float> features;
-    hog.compute(image, features);
-    return features;
-}
-
-std::vector<int> lbp(const cv::Mat &temp) {
-    cv::Mat gray;
-    if (temp.channels() != 1)
-        cv::cvtColor(temp, gray, cv::COLOR_BGR2GRAY);
-    else
-        temp.copyTo(gray);
-
-    std::vector<int> features;
-    features.resize(gray.rows * gray.cols);
 
 
-    for (int j = 0; j < gray.rows; j++) {
-        if (j == 0 || j == gray.rows - 1) {
-            continue;
-        }
-
-        const auto *previous = gray.ptr<const uchar>(j - 1);
-        const auto *current = gray.ptr<const uchar>(j);
-        const auto *next = gray.ptr<const uchar>(j + 1);
-
-        auto *output = &features[j * gray.cols];
-
-        for (int i = 0; i < gray.cols; i++) {
-            if (i == 0 || i == gray.cols - 1) {
-                output++;
-                continue;
-            }
-
-            *output = previous[i - 1] > current[i] ? 1 : 0;
-            *output |= previous[i] > current[i] ? 2 : 0;
-            *output |= previous[i + 1] > current[i] ? 4 : 0;
-
-            *output |= current[i - 1] > current[i] ? 8 : 0;
-            *output |= current[i + 1] > current[i] ? 16 : 0;
-
-            *output |= next[i - 1] > current[i] ? 32 : 0;
-            *output |= next[i] > current[i] ? 64 : 0;
-            *output |= next[i + 1] > current[i] ? 128 : 0;
-
-            output++;
-        }
-    }
-
-    return features;
-}
-
-std::vector<float> get_lbp_features(const cv::Mat &image) {
-    std::vector<float> features;
-    const auto intValue = lbp(image);
-    features.reserve(intValue.size());
-    for (const auto &i: intValue) {
-        features.emplace_back(i * 1.0 / 256);
-    }
-    return features;
-}
 
 
 SplitData split_vector(const std::vector<Data> &data, int percent) {
@@ -275,19 +210,21 @@ SplitData split_vector(const std::vector<Data> &data, int percent) {
         throw std::invalid_argument("Percent must be between 1 and 99.");
     }
 
-    std::vector<Data> shuffled = data;
+    // std::vector<Data> shuffled = data;
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::shuffle(shuffled.begin(), shuffled.end(), gen);
+    // std::random_device rd;
+    // std::mt19937 gen(rd());
+    // std::shuffle(shuffled.begin(), shuffled.end(), gen);
 
-    const auto split_idx = shuffled.size() * percent / 100;
+    // Just use the input vector directly
+    const auto split_idx = data.size() * percent / 100;
 
-    std::vector first(shuffled.begin(), shuffled.begin() + split_idx);
-    std::vector second(shuffled.begin() + split_idx, shuffled.end());
+    std::vector<Data> first(data.begin(), data.begin() + split_idx);
+    std::vector<Data> second(data.begin() + split_idx, data.end());
 
     return {first, second};
 }
+
 
 enum class FeatureType {
     HOG,
@@ -397,8 +334,8 @@ std::pair<std::vector<Data>, std::vector<Data> > get_data() {
     for (const auto &fudan_image: fudan_images) {
         Data d;
         d.label = +1;
-        d.hog_features = get_hog_features(fudan_image);
-        d.lbp_features = get_lbp_features(fudan_image);
+        d.hog_features = descriptors::get_hog(fudan_image);
+        d.lbp_features = descriptors::get_lbp(fudan_image);
         d.dataset = "fudan";
         posData.push_back(d);
     }
@@ -406,8 +343,8 @@ std::pair<std::vector<Data>, std::vector<Data> > get_data() {
     for (const auto &penn_image: penn_images) {
         Data d;
         d.label = +1;
-        d.hog_features = get_hog_features(penn_image);
-        d.lbp_features = get_lbp_features(penn_image);
+        d.hog_features = descriptors::get_hog(penn_image);
+        d.lbp_features = descriptors::get_lbp(penn_image);
         d.dataset = "penn";
         posData.push_back(d);
     }
@@ -415,8 +352,8 @@ std::pair<std::vector<Data>, std::vector<Data> > get_data() {
     for (const auto &neg_image: neg_images) {
         Data d;
         d.label = -1;
-        d.hog_features = get_hog_features(neg_image);
-        d.lbp_features = get_lbp_features(neg_image);
+        d.hog_features = descriptors::get_hog(neg_image);
+        d.lbp_features = descriptors::get_lbp(neg_image);
         d.dataset = "neg";
         negData.push_back(d);
     }
