@@ -7,6 +7,9 @@ find_package(OpenCV REQUIRED)
 include_directories(include)
 
 
-add_executable(pedestrians main.cpp src/descriptors.cpp src/utils.cpp src/io.cpp)
+file(GLOB SRC_FILES src/*.cpp)
+
+add_executable(pedestrians main.cpp ${SRC_FILES})
+
 target_link_libraries(pedestrians ${OpenCV_LIBS})
 target_include_directories(pedestrians PRIVATE ${OpenCV_INCLUDE_DIRS})
