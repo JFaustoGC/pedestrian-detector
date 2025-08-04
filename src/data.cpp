@@ -5,6 +5,7 @@
 #include "data.h"
 
 #include <iostream>
+#include <random>
 #include <opencv2/core/mat.hpp>
 
 namespace ml {
@@ -45,18 +46,19 @@ namespace ml {
             throw std::invalid_argument("Percent must be between 1 and 99.");
         }
 
-        // std::vector<Data> shuffled = data;
+        std::vector<Data> shuffled = data;  // Make a copy to shuffle
 
-        // std::random_device rd;
-        // std::mt19937 gen(rd());
-        // std::shuffle(shuffled.begin(), shuffled.end(), gen);
+        // Use random device and Mersenne Twister for shuffling
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::shuffle(shuffled.begin(), shuffled.end(), gen);
 
-        // Just use the input vector directly
-        const auto split_idx = data.size() * percent / 100;
+        const auto split_idx = shuffled.size() * percent / 100;
 
-        std::vector<Data> first(data.begin(), data.begin() + split_idx);
-        std::vector<Data> second(data.begin() + split_idx, data.end());
+        std::vector<Data> first(shuffled.begin(), shuffled.begin() + split_idx);
+        std::vector<Data> second(shuffled.begin() + split_idx, shuffled.end());
 
         return {first, second};
     }
+
 }

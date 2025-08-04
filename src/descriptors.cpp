@@ -8,20 +8,20 @@
 #include <opencv2/objdetect.hpp>
 
 namespace descriptors {
-    std::vector<float> get_hog(const cv::Mat &img) {
-        const cv::Size winSize = {64, 128};
-        const cv::Size blockSize = {16, 16};
-        const cv::Size blockStride = {8, 8};
-        const cv::Size cellSize = {8, 8};
-        const int nbins = 9;
+    std::vector<float> get_hog(const cv::Mat &img, const HOGParams &params) {
         const cv::HOGDescriptor hog(
-            winSize, blockSize, blockStride, cellSize, nbins
+            params.winSize,
+            params.blockSize,
+            params.blockStride,
+            params.cellSize,
+            params.nbins
         );
 
         std::vector<float> features;
         hog.compute(img, features);
         return features;
     }
+
 
     std::vector<float> get_lbp(const cv::Mat &img) {
         cv::Mat gray;

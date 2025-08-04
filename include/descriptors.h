@@ -9,7 +9,16 @@
 #include <opencv2/core.hpp>
 
 namespace descriptors {
-    std::vector<float> get_hog(const cv::Mat &img);
+    struct HOGParams {
+        cv::Size winSize;
+        cv::Size blockSize;
+        cv::Size blockStride;
+        cv::Size cellSize;
+        int nbins;
+    };
+
+    std::vector<float> get_hog(const cv::Mat &img, const HOGParams &params);
+
     std::vector<float> get_lbp(const cv::Mat &img);
 }
 
