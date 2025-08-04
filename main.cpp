@@ -269,115 +269,6 @@ std::vector<float> get_lbp_features(const cv::Mat &image) {
     return features;
 }
 
-void save_features(std::vector<Data> const &data, const std::string &filename) {
-    std::ofstream file(filename); // truncation by default
-    if (!file.is_open()) {
-        std::cerr << "Could not create feature file: " << filename << '\n';
-        return;
-    }
-
-    for (const auto &[hog, lbp, label, dataset]: data) {
-        file << label << "|";
-        file << dataset << "|";
-
-        for (size_t i = 0; i < hog.size(); ++i) {
-            file << hog[i];
-            if (i + 1 < hog.size()) file << ",";
-        }
-        file << "|";
-
-        for (size_t i = 0; i < lbp.size(); ++i) {
-            file << lbp[i];
-            if (i + 1 < lbp.size()) file << ",";
-        }
-        file << '\n';
-    }
-}
-
-std::pair<std::vector<Data>, std::vector<Data> > load_features(const std::string &filename) {
-    std::vector<Data> posData, negData;
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Could not open feature file: " << filename << '\n';
-        return std::make_pair(posData, negData);
-    }
-
-    std::string line;
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string label_str, dataset_str, hog_str, lbp_str;
-
-        if (!std::getline(ss, label_str, '|')) continue;
-        if (!std::getline(ss, dataset_str, '|')) continue;
-        if (!std::getline(ss, hog_str, '|')) continue;
-        if (!std::getline(ss, lbp_str, '|')) continue;
-
-
-        std::vector<float> hog_features;
-        std::stringstream hog_ss(hog_str);
-        std::string val;
-        while (std::getline(hog_ss, val, ',')) {
-            if (!val.empty()) hog_features.push_back(std::stof(val));
-        }
-
-        std::vector<float> lbp_features;
-        std::stringstream lbp_ss(lbp_str);
-        while (std::getline(lbp_ss, val, ',')) {
-            if (!val.empty()) lbp_features.push_back(std::stof(val));
-        }
-
-        if (label_str == "-1") {
-            negData.push_back({hog_features, lbp_features, std::stoi(label_str), dataset_str});
-            continue;
-        }
-
-        posData.push_back({hog_features, lbp_features, std::stoi(label_str), dataset_str});
-    }
-
-    return std::make_pair(posData, negData);
-}
-
-void generate_data() {
-    std::vector<Data> data;
-    const std::string p_folder = "../pedestrian_dataset";
-    const std::string n_folder = "../para_imagenesNegativas";
-    const std::string f_prefix = "FudanPed";
-    const std::string p_prefix = "PennPed";
-
-
-    const auto fudan_images = load_positive(p_folder, f_prefix);
-    const auto penn_images = load_positive(p_folder, p_prefix);
-    const auto neg_images = load_negative(n_folder, {64, 128}, 1000, 1000 / 6);
-
-    for (const auto &fudan_image: fudan_images) {
-        Data d;
-        d.label = +1;
-        d.hog_features = get_hog_features(fudan_image);
-        d.lbp_features = get_lbp_features(fudan_image);
-        d.dataset = "fudan";
-        data.push_back(d);
-    }
-
-    for (const auto &penn_image: penn_images) {
-        Data d;
-        d.label = +1;
-        d.hog_features = get_hog_features(penn_image);
-        d.lbp_features = get_lbp_features(penn_image);
-        d.dataset = "penn";
-        data.push_back(d);
-    }
-
-    for (const auto &neg_image: neg_images) {
-        Data d;
-        d.label = -1;
-        d.hog_features = get_hog_features(neg_image);
-        d.lbp_features = get_lbp_features(neg_image);
-        d.dataset = "neg";
-        data.push_back(d);
-    }
-
-    save_features(data, "../data.csv");
-}
 
 SplitData split_vector(const std::vector<Data> &data, int percent) {
     if (percent <= 0 || percent >= 100) {
@@ -491,34 +382,61 @@ std::tuple<double, double, double, double> test_svm(
     return {accuracy, precision, recall, f1};
 }
 
+std::pair<std::vector<Data>, std::vector<Data> > get_data() {
+    std::vector<Data> posData, negData;
+    const std::string p_folder = "../pedestrian_dataset";
+    const std::string n_folder = "../para_imagenesNegativas";
+    const std::string f_prefix = "FudanPed";
+    const std::string p_prefix = "PennPed";
+
+
+    const auto fudan_images = load_positive(p_folder, f_prefix);
+    const auto penn_images = load_positive(p_folder, p_prefix);
+    const auto neg_images = load_negative(n_folder, {64, 128}, 1000, 1000 / 6);
+
+    for (const auto &fudan_image: fudan_images) {
+        Data d;
+        d.label = +1;
+        d.hog_features = get_hog_features(fudan_image);
+        d.lbp_features = get_lbp_features(fudan_image);
+        d.dataset = "fudan";
+        posData.push_back(d);
+    }
+
+    for (const auto &penn_image: penn_images) {
+        Data d;
+        d.label = +1;
+        d.hog_features = get_hog_features(penn_image);
+        d.lbp_features = get_lbp_features(penn_image);
+        d.dataset = "penn";
+        posData.push_back(d);
+    }
+
+    for (const auto &neg_image: neg_images) {
+        Data d;
+        d.label = -1;
+        d.hog_features = get_hog_features(neg_image);
+        d.lbp_features = get_lbp_features(neg_image);
+        d.dataset = "neg";
+        negData.push_back(d);
+    }
+    return std::make_pair(posData, negData);
+}
 
 int main(int argc, char **argv) {
-    bool generate_features = false;
-
-    for (int i = 1; i < argc; ++i) {
-        if (std::string arg = argv[i]; arg == "--generate-features") {
-            generate_features = true;
-        }
-    }
-
-    if (generate_features) {
-        generate_data();
-    }
-
-    auto [posData, negData] = load_features("../data.csv");
-
     constexpr int runs = 5;
     std::map<FeatureType, Metrics> results;
 
     for (int i = 0; i < runs; ++i) {
-        auto posSplit = split_vector(posData, 80);
-        auto negSplit = split_vector(negData, 80);
+        auto [posData, negData] = get_data();
+        auto [trainPos, testPos] = split_vector(posData, 80);
+        auto [trainNeg, testNeg] = split_vector(negData, 80);
 
         std::vector<Data> trainData, testData;
-        trainData.insert(trainData.end(), posSplit.train.begin(), posSplit.train.end());
-        trainData.insert(trainData.end(), negSplit.train.begin(), negSplit.train.end());
-        testData.insert(testData.end(), posSplit.test.begin(), posSplit.test.end());
-        testData.insert(testData.end(), negSplit.test.begin(), negSplit.test.end());
+        trainData.insert(trainData.end(), trainPos.begin(), trainPos.end());
+        trainData.insert(trainData.end(), trainNeg.begin(), trainNeg.end());
+        testData.insert(testData.end(), testPos.begin(), testPos.end());
+        testData.insert(testData.end(), testNeg.begin(), testNeg.end());
 
         for (FeatureType type: {FeatureType::HOG, FeatureType::LBP, FeatureType::BOTH}) {
             auto training_matrices = generate_training_matrices(trainData, type);
