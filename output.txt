@@ -1,0 +1,602 @@
+====================
+NORMAL RUN
+====================
+Testing HOG with nbins=6, blockSize=[16 x 16], blockStride=[8 x 8]
+Params: nbins=6 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  95.5783%
+Precision: 93.2459%
+Recall:    88.7719%
+F1 Score:  90.9472%
+
+Params: nbins=6 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.7408%
+Precision: 59.3218%
+Recall:    48.538%
+F1 Score:  53.3388%
+
+Params: nbins=6 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  89.1654%
+Precision: 84.1377%
+Recall:    69.9415%
+F1 Score:  76.3622%
+
+Testing HOG with nbins=6, blockSize=[16 x 16], blockStride=[16 x 16]
+Params: nbins=6 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  95.0512%
+Precision: 90.7142%
+Recall:    89.4737%
+F1 Score:  90.0565%
+
+Params: nbins=6 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  79.2679%
+Precision: 60.0563%
+Recall:    52.0468%
+F1 Score:  55.6985%
+
+Params: nbins=6 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  85.4173%
+Precision: 74.9351%
+Recall:    62.807%
+F1 Score:  68.2314%
+
+Testing HOG with nbins=6, blockSize=[24 x 24], blockStride=[8 x 8]
+Params: nbins=6 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  96.164%
+Precision: 94.4907%
+Recall:    89.9415%
+F1 Score:  92.1493%
+
+Params: nbins=6 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  79.7657%
+Precision: 61.2563%
+Recall:    51.9298%
+F1 Score:  56.1742%
+
+Params: nbins=6 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  89.5754%
+Precision: 84.9544%
+Recall:    70.9942%
+F1 Score:  77.2984%
+
+Testing HOG with nbins=9, blockSize=[16 x 16], blockStride=[8 x 8]
+Params: nbins=9 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  97.0132%
+Precision: 95.9754%
+Recall:    91.9298%
+F1 Score:  93.9079%
+
+Params: nbins=9 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  79.0922%
+Precision: 59.4337%
+Recall:    51.9298%
+F1 Score:  55.3956%
+
+Params: nbins=9 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  91.4202%
+Precision: 88.9445%
+Recall:    75.0877%
+F1 Score:  81.4078%
+
+Testing HOG with nbins=9, blockSize=[16 x 16], blockStride=[16 x 16]
+Params: nbins=9 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  95.8712%
+Precision: 93.6138%
+Recall:    89.7076%
+F1 Score:  91.5762%
+
+Params: nbins=9 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  79.5608%
+Precision: 60.5753%
+Recall:    52.6316%
+F1 Score:  56.2492%
+
+Params: nbins=9 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  86.4714%
+Precision: 77.4335%
+Recall:    64.7953%
+F1 Score:  70.5266%
+
+Testing HOG with nbins=9, blockSize=[24 x 24], blockStride=[8 x 8]
+Params: nbins=9 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  96.6325%
+Precision: 95.0031%
+Recall:    91.345%
+F1 Score:  93.1272%
+
+Params: nbins=9 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.5652%
+Precision: 58.706%
+Recall:    49.4737%
+F1 Score:  53.6336%
+
+Params: nbins=9 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  90.8053%
+Precision: 88.3432%
+Recall:    72.8655%
+F1 Score:  79.7893%
+
+Testing HOG with nbins=12, blockSize=[16 x 16], blockStride=[8 x 8]
+Params: nbins=12 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  96.6618%
+Precision: 95.0319%
+Recall:    91.462%
+F1 Score:  93.2002%
+
+Params: nbins=12 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  79.5315%
+Precision: 61.1166%
+Recall:    50.1754%
+F1 Score:  55.0901%
+
+Params: nbins=12 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  91.7423%
+Precision: 89.474%
+Recall:    76.0234%
+F1 Score:  82.1813%
+
+Testing HOG with nbins=12, blockSize=[16 x 16], blockStride=[16 x 16]
+Params: nbins=12 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  96.0761%
+Precision: 93.1867%
+Recall:    90.9942%
+F1 Score:  92.0665%
+
+Params: nbins=12 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.653%
+Precision: 59.0807%
+Recall:    47.8363%
+F1 Score:  52.8499%
+
+Params: nbins=12 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  85.6515%
+Precision: 76.2873%
+Recall:    62.1053%
+F1 Score:  68.3967%
+
+Testing HOG with nbins=12, blockSize=[24 x 24], blockStride=[8 x 8]
+Params: nbins=12 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  97.0425%
+Precision: 95.1603%
+Recall:    92.9825%
+F1 Score:  94.0258%
+
+Params: nbins=12 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.7994%
+Precision: 58.9577%
+Recall:    50.7602%
+F1 Score:  54.4741%
+
+Params: nbins=12 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  90.4539%
+Precision: 85.6049%
+Recall:    74.386%
+F1 Score:  79.5969%
+
+====================
+BOOTSTRAPPED RUN (hard negative mining)
+====================
+Testing HOG with nbins=6, blockSize=[16 x 16], blockStride=[8 x 8]
+Params: nbins=6 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  98.8623%
+Precision: 95.5184%
+Recall:    89.4737%
+F1 Score:  92.3763%
+
+Params: nbins=6 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  94.8804%
+Precision: 75.7735%
+Recall:    49.4737%
+F1 Score:  59.7816%
+
+Params: nbins=6 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  97.7427%
+Precision: 98.5703%
+Recall:    71.8129%
+F1 Score:  83.0632%
+
+Testing HOG with nbins=6, blockSize=[16 x 16], blockStride=[16 x 16]
+Params: nbins=6 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  98.3115%
+Precision: 91.0864%
+Recall:    86.6667%
+F1 Score:  88.7936%
+
+Params: nbins=6 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  95.088%
+Precision: 79.0012%
+Recall:    49.4737%
+F1 Score:  60.8248%
+
+Params: nbins=6 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  96.7133%
+Precision: 97.1947%
+Recall:    59.1813%
+F1 Score:  73.4574%
+
+Testing HOG with nbins=6, blockSize=[24 x 24], blockStride=[8 x 8]
+Params: nbins=6 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  98.9255%
+Precision: 95.6898%
+Recall:    90.1754%
+F1 Score:  92.8398%
+
+Params: nbins=6 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  95.2777%
+Precision: 79.9807%
+Recall:    52.0468%
+F1 Score:  62.9795%
+
+Params: nbins=6 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  97.8781%
+Precision: 99.0475%
+Recall:    73.2164%
+F1 Score:  84.1918%
+
+Testing HOG with nbins=9, blockSize=[16 x 16], blockStride=[8 x 8]
+Params: nbins=9 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  99.0971%
+Precision: 96.8568%
+Recall:    91.345%
+F1 Score:  93.967%
+
+Params: nbins=9 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  95.079%
+Precision: 78.616%
+Recall:    49.9415%
+F1 Score:  61.0265%
+
+Params: nbins=9 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  98.167%
+Precision: 99.2601%
+Recall:    76.8421%
+F1 Score:  86.604%
+
+Testing HOG with nbins=9, blockSize=[16 x 16], blockStride=[16 x 16]
+Params: nbins=9 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  98.6095%
+Precision: 94.289%
+Recall:    87.3684%
+F1 Score:  90.6584%
+
+Params: nbins=9 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  94.9255%
+Precision: 76.8444%
+Recall:    49.0058%
+F1 Score:  59.8255%
+
+Params: nbins=9 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  96.8578%
+Precision: 97.5554%
+Recall:    60.8187%
+F1 Score:  74.8577%
+
+Testing HOG with nbins=9, blockSize=[24 x 24], blockStride=[8 x 8]
+Params: nbins=9 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  99.0971%
+Precision: 97.1355%
+Recall:    90.9942%
+F1 Score:  93.9405%
+
+Params: nbins=9 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  94.8894%
+Precision: 75.9452%
+Recall:    49.7076%
+F1 Score:  59.9994%
+
+Params: nbins=9 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  98.0135%
+Precision: 99.5384%
+Recall:    74.6199%
+F1 Score:  85.2587%
+
+Testing HOG with nbins=12, blockSize=[16 x 16], blockStride=[8 x 8]
+Params: nbins=12 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  99.0248%
+Precision: 96.2829%
+Recall:    90.8772%
+F1 Score:  93.4945%
+
+Params: nbins=12 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  95.3499%
+Precision: 79.9709%
+Recall:    52.9825%
+F1 Score:  63.716%
+
+Params: nbins=12 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  98.3115%
+Precision: 99.551%
+Recall:    78.4795%
+F1 Score:  87.7577%
+
+Testing HOG with nbins=12, blockSize=[16 x 16], blockStride=[16 x 16]
+Params: nbins=12 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  98.9616%
+Precision: 96.1338%
+Recall:    90.1754%
+F1 Score:  93.0418%
+
+Params: nbins=12 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  94.8262%
+Precision: 77.043%
+Recall:    47.1345%
+F1 Score:  58.4597%
+
+Params: nbins=12 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  97.0655%
+Precision: 98.014%
+Recall:    63.2749%
+F1 Score:  76.897%
+
+Testing HOG with nbins=12, blockSize=[24 x 24], blockStride=[8 x 8]
+Params: nbins=12 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  99.0068%
+Precision: 96.527%
+Recall:    90.4094%
+F1 Score:  93.3492%
+
+Params: nbins=12 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  95.0339%
+Precision: 77.111%
+Recall:    50.7602%
+F1 Score:  61.1779%
+
+Params: nbins=12 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  98.2844%
+Precision: 99.5598%
+Recall:    78.1287%
+F1 Score:  87.5425%
+
+====================
+NORMAL RUN
+====================
+Testing HOG with nbins=6, blockSize=[16 x 16], blockStride=[8 x 8]
+Params: nbins=6 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  95.8712%
+Precision: 94.4671%
+Recall:    88.7719%
+F1 Score:  91.5034%
+
+Params: nbins=6 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  79.0044%
+Precision: 59.3575%
+Recall:    51.462%
+F1 Score:  54.9841%
+
+Params: nbins=6 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  90.1318%
+Precision: 84.7558%
+Recall:    73.9181%
+F1 Score:  78.9471%
+
+Testing HOG with nbins=6, blockSize=[16 x 16], blockStride=[16 x 16]
+Params: nbins=6 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  95.4026%
+Precision: 92.5026%
+Recall:    88.8889%
+F1 Score:  90.6253%
+
+Params: nbins=6 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.0088%
+Precision: 56.6369%
+Recall:    52.0468%
+F1 Score:  54.1843%
+
+Params: nbins=6 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  84.041%
+Precision: 70.5061%
+Recall:    62.4561%
+F1 Score:  66.1886%
+
+Testing HOG with nbins=6, blockSize=[24 x 24], blockStride=[8 x 8]
+Params: nbins=6 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  95.7247%
+Precision: 93.9471%
+Recall:    88.655%
+F1 Score:  91.2124%
+
+Params: nbins=6 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.1259%
+Precision: 57.3399%
+Recall:    49.5906%
+F1 Score:  53.1188%
+
+Params: nbins=6 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  88.4334%
+Precision: 81.6077%
+Recall:    69.4737%
+F1 Score:  75.0332%
+
+Testing HOG with nbins=9, blockSize=[16 x 16], blockStride=[8 x 8]
+Params: nbins=9 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  96.7789%
+Precision: 95.8402%
+Recall:    91.1111%
+F1 Score:  93.4014%
+
+Params: nbins=9 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.5359%
+Precision: 58.5958%
+Recall:    48.7719%
+F1 Score:  53.2284%
+
+Params: nbins=9 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  90.8053%
+Precision: 85.3809%
+Recall:    76.3743%
+F1 Score:  80.6013%
+
+Testing HOG with nbins=9, blockSize=[16 x 16], blockStride=[16 x 16]
+Params: nbins=9 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  95.6955%
+Precision: 93.7406%
+Recall:    88.7719%
+F1 Score:  91.163%
+
+Params: nbins=9 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.7994%
+Precision: 58.8552%
+Recall:    51.2281%
+F1 Score:  54.744%
+
+Params: nbins=9 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  85.6515%
+Precision: 75.1934%
+Recall:    63.8596%
+F1 Score:  68.9926%
+
+Testing HOG with nbins=9, blockSize=[24 x 24], blockStride=[8 x 8]
+Params: nbins=9 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  96.8082%
+Precision: 95.1628%
+Recall:    91.9298%
+F1 Score:  93.5162%
+
+Params: nbins=9 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.653%
+Precision: 58.499%
+Recall:    51.1111%
+F1 Score:  54.5219%
+
+Params: nbins=9 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  91.0981%
+Precision: 86.8039%
+Recall:    76.0234%
+F1 Score:  81.05%
+
+Testing HOG with nbins=12, blockSize=[16 x 16], blockStride=[8 x 8]
+Params: nbins=12 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  96.6618%
+Precision: 96.057%
+Recall:    90.4094%
+F1 Score:  93.1345%
+
+Params: nbins=12 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.9751%
+Precision: 59.1124%
+Recall:    52.6316%
+F1 Score:  55.6491%
+
+Params: nbins=12 block=[16 x 16] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  91.5959%
+Precision: 88.3828%
+Recall:    76.4912%
+F1 Score:  81.9961%
+
+Testing HOG with nbins=12, blockSize=[16 x 16], blockStride=[16 x 16]
+Params: nbins=12 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  95.8419%
+Precision: 94.4481%
+Recall:    88.655%
+F1 Score:  91.4368%
+
+Params: nbins=12 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.5652%
+Precision: 58.6401%
+Recall:    49.1228%
+F1 Score:  53.4022%
+
+Params: nbins=12 block=[16 x 16] stride=[16 x 16]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  86.53%
+Precision: 78.5495%
+Recall:    63.8596%
+F1 Score:  70.363%
+
+Testing HOG with nbins=12, blockSize=[24 x 24], blockStride=[8 x 8]
+Params: nbins=12 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for HOG over 5 runs ===
+Accuracy:  96.7204%
+Precision: 95.1453%
+Recall:    91.5789%
+F1 Score:  93.3158%
+
+Params: nbins=12 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for LBP over 5 runs ===
+Accuracy:  78.8873%
+Precision: 59.2029%
+Recall:    50.5263%
+F1 Score:  54.4747%
+
+Params: nbins=12 block=[24 x 24] stride=[8 x 8]
+=== Average Metrics for BOTH over 5 runs ===
+Accuracy:  91.7716%
+Precision: 88.9005%
+Recall:    76.8421%
+F1 Score:  82.3821%

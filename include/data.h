@@ -57,6 +57,8 @@ namespace ml {
     TrainingMatrices generate_training_matrices(const std::vector<Data> &, FeatureType);
 
     SplitData split_vector(const std::vector<Data> &data, int percent);
+
+    std::vector<std::vector<Data>> split_vector_parts(const std::vector<Data> &data, const int parts);
 }
 
 
