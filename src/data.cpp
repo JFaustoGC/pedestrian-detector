@@ -48,15 +48,14 @@ namespace ml {
 
         std::vector<Data> shuffled = data;  // Make a copy to shuffle
 
-        // Use random device and Mersenne Twister for shuffling
         std::random_device rd;
         std::mt19937 gen(rd());
         std::shuffle(shuffled.begin(), shuffled.end(), gen);
 
         const auto split_idx = shuffled.size() * percent / 100;
 
-        std::vector<Data> first(shuffled.begin(), shuffled.begin() + split_idx);
-        std::vector<Data> second(shuffled.begin() + split_idx, shuffled.end());
+        const std::vector first(shuffled.begin(), shuffled.begin() + split_idx);
+        const std::vector second(shuffled.begin() + split_idx, shuffled.end());
 
         return {first, second};
     }

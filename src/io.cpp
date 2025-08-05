@@ -20,19 +20,32 @@ namespace io {
         return utils::process_images(cropped_images, size);
     }
 
-    std::vector<cv::Mat> load_negative(const std::string &folder, const cv::Size &size, int count, int per_image) {
+    std::vector<cv::Mat> load_negative(const std::string &folder, const cv::Size &size, const int count) {
         namespace fs = std::filesystem;
         std::vector<cv::Mat> negatives;
 
+        std::vector<fs::path> image_paths;
         for (const auto &entry: fs::directory_iterator(folder)) {
             if (!entry.is_regular_file()) continue;
-            if (entry.path().extension() != ".png") continue;
+            if (entry.path().extension() == ".png") {
+                image_paths.push_back(entry.path());
+            }
+        }
 
-            std::string img_path = entry.path().string();
-            cv::Mat img = cv::imread(img_path);
+        std::sort(image_paths.begin(), image_paths.end());
+
+
+        const int base_count = count / 6;
+        const int remainder = count % 6;
+
+        for (size_t i = 0; i < 6; ++i) {
+            const int per_image = base_count + (i < remainder ? 1 : 0);
+
+            const auto &path = image_paths[i];
+            cv::Mat img = cv::imread(path.string());
             if (img.empty()) continue;
 
-            std::string base = entry.path().stem().string();
+            std::string base = path.stem().string();
             std::string annotation_file = (fs::path(folder) / (base + ".txt")).string();
 
             generate_random_annotations(annotation_file, img.cols, img.rows, per_image);
@@ -45,12 +58,20 @@ namespace io {
                 cv::Mat resized;
                 cv::resize(patch, resized, size);
                 negatives.push_back(resized);
-                if (static_cast<int>(negatives.size()) >= count) return negatives;
+                if (static_cast<int>(negatives.size()) >= count) {
+                    return negatives;
+                }
             }
+        }
+
+        if (static_cast<int>(negatives.size()) < count) {
+            std::cerr << "Warning: Only " << negatives.size()
+                    << " negative samples generated, but " << count << " requested.\n";
         }
 
         return negatives;
     }
+
 
     std::vector<cv::Rect> get_bounding_boxes(const std::string &annotation_file) {
         std::vector<cv::Rect> boxes;

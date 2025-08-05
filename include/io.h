@@ -13,7 +13,7 @@ namespace io {
     std::vector<cv::Mat> load_positive(const std::string &folder, const std::string &prefix,
                                        const cv::Size &size = {64, 128});
 
-    std::vector<cv::Mat> load_negative(const std::string &folder, const cv::Size &size, int count, int per_image);
+    std::vector<cv::Mat> load_negative(const std::string &folder, const cv::Size &size, int count);
 
     std::vector<cv::Rect> get_bounding_boxes(const std::string &annotation_file);
 

@@ -5,15 +5,16 @@
 #include "evaluation.h"
 
 namespace eval {
-    std::tuple<double, double, double, double> test_svm(
-    const std::vector<ml::Data> &data,
-    const ml::TrainingMatrices &training_matrices,
-    const cv::Ptr<cv::ml::SVM> &svm,
-    ml::FeatureType type
-) {
+    std::tuple<double, double, double, double, std::vector<ml::Data>> test_svm(
+        const std::vector<ml::Data> &data,
+        const ml::TrainingMatrices &training_matrices,
+        const cv::Ptr<cv::ml::SVM> &svm,
+        ml::FeatureType type
+    ) {
         int TP = 0, TN = 0, FP = 0, FN = 0;
+        std::vector<ml::Data> false_positives;
 
-        for (const auto &sample: data) {
+        for (const auto &sample : data) {
             auto features = extract_features(sample, type);
             cv::Mat input(1, training_matrices.descriptor_size, CV_32F);
             for (size_t j = 0; j < features.size(); ++j) {
@@ -22,10 +23,17 @@ namespace eval {
 
             int prediction = static_cast<int>(svm->predict(input));
             int label = sample.label;
-            if (prediction == POS_LABEL && label == POS_LABEL) TP++;
-            else if (prediction == NEG_LABEL && label == NEG_LABEL) TN++;
-            else if (prediction == POS_LABEL && label == NEG_LABEL) FP++;
-            else if (prediction == NEG_LABEL && label == POS_LABEL) FN++;
+
+            if (prediction == POS_LABEL && label == POS_LABEL) {
+                TP++;
+            } else if (prediction == NEG_LABEL && label == NEG_LABEL) {
+                TN++;
+            } else if (prediction == POS_LABEL && label == NEG_LABEL) {
+                FP++;
+                false_positives.push_back(sample);  // ← Store the false positive
+            } else if (prediction == NEG_LABEL && label == POS_LABEL) {
+                FN++;
+            }
         }
 
         int total = TP + TN + FP + FN;
@@ -34,7 +42,6 @@ namespace eval {
         double recall = (TP + FN == 0) ? 0 : 100.0 * TP / (TP + FN);
         double f1 = (precision + recall == 0) ? 0 : 2.0 * precision * recall / (precision + recall);
 
-        return {accuracy, precision, recall, f1};
+        return {accuracy, precision, recall, f1, false_positives};
     }
-
 }

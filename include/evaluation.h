@@ -10,7 +10,7 @@
 #include "data.h"
 
 namespace eval {
-    std::tuple<double, double, double, double> test_svm(
+    std::tuple<double, double, double, double, std::vector<ml::Data>> test_svm(
         const std::vector<ml::Data> &data,
         const ml::TrainingMatrices &matrices,
         const cv::Ptr<cv::ml::SVM> &svm,

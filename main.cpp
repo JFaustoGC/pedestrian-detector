@@ -13,45 +13,69 @@ constexpr int WIDTH = 64;
 constexpr int HEIGHT = 128;
 
 
-std::pair<std::vector<ml::Data>, std::vector<ml::Data> > get_data(const descriptors::HOGParams &params) {
-    std::vector<ml::Data> posData, negData;
-    const std::string p_folder = "../pedestrian_dataset";
-    const std::string n_folder = "../para_imagenesNegativas";
-    const std::string f_prefix = "FudanPed";
-    const std::string p_prefix = "PennPed";
+std::vector<ml::Data> load_positive(const descriptors::HOGParams &params) {
+    const std::string folder = "../pedestrian_dataset";
+    const std::string fudan_prefix = "FudanPed";
+    const std::string penn_prefix = "PennPed";
 
+    std::vector<ml::Data> positives;
 
-    const auto fudan_images = io::load_positive(p_folder, f_prefix);
-    const auto penn_images = io::load_positive(p_folder, p_prefix);
-    const auto neg_images = io::load_negative(n_folder, {64, 128}, 1000, 1000 / 6);
+    const auto fudan_images = io::load_positive(folder, fudan_prefix);
+    const auto penn_images = io::load_positive(folder, penn_prefix);
 
-    for (const auto &fudan_image: fudan_images) {
+    for (const auto &img: fudan_images) {
         ml::Data d;
         d.label = +1;
-        d.hog_features = descriptors::get_hog(fudan_image, params);
-        d.lbp_features = descriptors::get_lbp(fudan_image);
+        d.hog_features = descriptors::get_hog(img, params);
+        d.lbp_features = descriptors::get_lbp(img);
         d.dataset = "fudan";
-        posData.push_back(d);
+        positives.push_back(std::move(d));
     }
 
-    for (const auto &penn_image: penn_images) {
+    for (const auto &img: penn_images) {
         ml::Data d;
         d.label = +1;
-        d.hog_features = descriptors::get_hog(penn_image, params);
-        d.lbp_features = descriptors::get_lbp(penn_image);
+        d.hog_features = descriptors::get_hog(img, params);
+        d.lbp_features = descriptors::get_lbp(img);
         d.dataset = "penn";
-        posData.push_back(d);
+        positives.push_back(std::move(d));
     }
 
-    for (const auto &neg_image: neg_images) {
+    return positives;
+}
+
+std::vector<ml::Data> load_negative(const descriptors::HOGParams &params, int count) {
+    const std::string folder = "../para_imagenesNegativas";
+
+    std::vector<ml::Data> negatives;
+
+    const auto neg_images = io::load_negative(folder, {64, 128}, count);
+
+    for (const auto &img: neg_images) {
         ml::Data d;
         d.label = -1;
-        d.hog_features = descriptors::get_hog(neg_image, params);
-        d.lbp_features = descriptors::get_lbp(neg_image);
+        d.hog_features = descriptors::get_hog(img, params);
+        d.lbp_features = descriptors::get_lbp(img);
         d.dataset = "neg";
-        negData.push_back(d);
+        negatives.push_back(std::move(d));
     }
-    return std::make_pair(posData, negData);
+
+    return negatives;
+}
+
+std::pair<std::vector<ml::Data>, std::vector<ml::Data> >
+get_data(const descriptors::HOGParams &params, const int proportion = 1) {
+    auto posData = load_positive(params);
+    const int neg_count = static_cast<int>(posData.size() * proportion);
+    auto negData = load_negative(params, neg_count);
+    return {std::move(posData), std::move(negData)};
+}
+
+
+std::vector<ml::Data> merge_data(const std::vector<ml::Data> &a, const std::vector<ml::Data> &b) {
+    std::vector<ml::Data> result = a;
+    result.insert(result.end(), b.begin(), b.end());
+    return result;
 }
 
 int main(int argc, char **argv) {
@@ -73,6 +97,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    auto bootstrap = true;
 
     for (const auto &hogParams: param_grid) {
         std::cout << "Testing HOG with nbins=" << hogParams.nbins
@@ -82,15 +107,30 @@ int main(int argc, char **argv) {
         std::map<ml::FeatureType, ml::Metrics> results;
 
         for (int i = 0; i < runs; ++i) {
-            auto [posData, negData] = get_data(hogParams);
-            auto [trainPos, testPos] = split_vector(posData, 80);
-            auto [trainNeg, testNeg] = split_vector(negData, 80);
+            const int proportion = bootstrap ? 1 : 3;
+            auto [posData, negData] = get_data(hogParams, proportion);
 
-            std::vector<ml::Data> trainData, testData;
-            trainData.insert(trainData.end(), trainPos.begin(), trainPos.end());
-            trainData.insert(trainData.end(), trainNeg.begin(), trainNeg.end());
-            testData.insert(testData.end(), testPos.begin(), testPos.end());
-            testData.insert(testData.end(), testNeg.begin(), testNeg.end());
+            auto [trainPos, testPos] = split_vector(posData, 80);
+
+            std::vector<ml::Data> trainNeg, testNeg, miningSet1, miningSet2;
+
+            if (bootstrap) {
+                // Step 1: Split negData into 33%, 33%, 33%
+                auto [negBase, remaining1] = split_vector(negData, 33);
+                auto [negMining1, negMining2] = split_vector(remaining1, 50); // halves of 66%
+
+                trainNeg = negBase; // standard negatives
+                miningSet1 = negMining1;
+                miningSet2 = negMining2;
+            } else {
+                auto [negTrain, negTest] = split_vector(negData, 80);
+                trainNeg = negTrain;
+                testNeg = negTest;
+            }
+
+            auto trainData = merge_data(trainPos, trainNeg);
+            auto [testNegAlt, testNegRest] = split_vector(negData, 80); // for test when bootstrap
+            auto testData = merge_data(testPos, bootstrap ? testNegAlt : testNeg);
 
             for (ml::FeatureType type: {ml::FeatureType::HOG, ml::FeatureType::LBP, ml::FeatureType::BOTH}) {
                 auto training_matrices = generate_training_matrices(trainData, type);
@@ -100,7 +140,31 @@ int main(int argc, char **argv) {
                 svm->setType(cv::ml::SVM::C_SVC);
                 svm->train(training_matrices.features, cv::ml::ROW_SAMPLE, training_matrices.labels);
 
-                auto [acc, prec, rec, f1] = eval::test_svm(testData, training_matrices, svm, type);
+                if (bootstrap) {
+                    // First mining pass
+                    auto [acc1, prec1, rec1, f11, false_positives_1] = eval::test_svm(
+                        miningSet1, training_matrices, svm, type);
+                    trainData.insert(trainData.end(), false_positives_1.begin(), false_positives_1.end());
+
+                    training_matrices = generate_training_matrices(trainData, type);
+                    svm = cv::ml::SVM::create();
+                    svm->setKernel(cv::ml::SVM::LINEAR);
+                    svm->setType(cv::ml::SVM::C_SVC);
+                    svm->train(training_matrices.features, cv::ml::ROW_SAMPLE, training_matrices.labels);
+
+                    // Second mining pass
+                    auto [acc2, prec2, rec2, f12, false_positives_2] = eval::test_svm(
+                        miningSet2, training_matrices, svm, type);
+                    trainData.insert(trainData.end(), false_positives_2.begin(), false_positives_2.end());
+
+                    training_matrices = generate_training_matrices(trainData, type);
+                    svm = cv::ml::SVM::create();
+                    svm->setKernel(cv::ml::SVM::LINEAR);
+                    svm->setType(cv::ml::SVM::C_SVC);
+                    svm->train(training_matrices.features, cv::ml::ROW_SAMPLE, training_matrices.labels);
+                }
+
+                auto [acc, prec, rec, f1, false_positives] = eval::test_svm(testData, training_matrices, svm, type);
                 results[type].accumulate(acc, prec, rec, f1);
             }
         }
